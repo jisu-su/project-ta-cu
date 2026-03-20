@@ -1,5 +1,10 @@
 node_modules/
+client/node_modules/
+server/node_modules/
 client/.expo/
+client/dist/
+client/disc/
 server/.env
 client/.env
 server/secrets/
+.env
