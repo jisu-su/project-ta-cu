@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -9,13 +10,10 @@ import {
   View
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
-import MapView from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { signOut } from "firebase/auth";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
-import MapMarker from "../components/MapMarker";
-import RoutePolyline from "../components/RoutePolyline";
 import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
 import { calculatePoints } from "../modules/pointModule";
 import { endRideSession, getCurrentSession, startRideSession } from "../modules/rideModule";
@@ -42,6 +40,11 @@ function formatDistance(distanceKm) {
 }
 
 export default function MapScreen({ navigation, route }) {
+  const isWeb = Platform.OS === "web";
+  const MapView = isWeb ? null : require("react-native-maps").default;
+  const MapMarker = isWeb ? null : require("../components/MapMarker").default;
+  const RoutePolyline = isWeb ? null : require("../components/RoutePolyline").default;
+
   const [stations, setStations] = useState([]);
   const [loadingStations, setLoadingStations] = useState(true);
   const [riding, setRiding] = useState(false);
@@ -217,15 +220,25 @@ export default function MapScreen({ navigation, route }) {
         </View>
 
         <View style={styles.mapWrap}>
-          <MapView
-            style={StyleSheet.absoluteFill}
-            initialRegion={DEFAULT_REGION}
-            showsUserLocation
-            showsMyLocationButton={false}
-          >
-            {!loadingStations && stations.map((station) => <MapMarker key={station.id} station={station} />)}
-            <RoutePolyline coordinates={coordinates} />
-          </MapView>
+          {isWeb ? (
+            <View style={[StyleSheet.absoluteFill, styles.webMapFallback]}>
+              <FontAwesome6 name="globe" size={20} color="#0f172a" />
+              <Text style={styles.webMapTitle}>웹에서는 지도가 비활성화됩니다</Text>
+              <Text style={styles.webMapSubtitle}>모바일에서 지도를 확인할 수 있어요.</Text>
+            </View>
+          ) : (
+            <MapView
+              style={StyleSheet.absoluteFill}
+              initialRegion={DEFAULT_REGION}
+              showsUserLocation
+              showsMyLocationButton={false}
+            >
+              {!loadingStations && stations.map((station) => (
+                <MapMarker key={station.id} station={station} />
+              ))}
+              <RoutePolyline coordinates={coordinates} />
+            </MapView>
+          )}
 
           <View pointerEvents="none" style={styles.centerBadgeWrap}>
             <View style={styles.centerBadge}>
@@ -511,6 +524,24 @@ const styles = StyleSheet.create({
   mapWrap: {
     flex: 1,
     overflow: "hidden"
+  },
+  webMapFallback: {
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24
+  },
+  webMapTitle: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A"
+  },
+  webMapSubtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#475569",
+    textAlign: "center"
   },
   centerBadgeWrap: {
     position: "absolute",
