@@ -7,30 +7,51 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
   const polylineRef = useRef(null);
 
   useEffect(() => {
-    if (Platform.OS !== "web") return;
-    if (typeof window === "undefined" || !window.kakao) return;
+    if (Platform.OS !== "web") return undefined;
+    if (typeof window === "undefined") return undefined;
 
-    window.kakao.maps.load(() => {
-      const container = document.getElementById("kakao-map");
-      if (!container) return;
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 40;
 
-      const map = new window.kakao.maps.Map(container, {
-        center: new window.kakao.maps.LatLng(
-          defaultCenter?.latitude ?? 36.3504,
-          defaultCenter?.longitude ?? 127.3845
-        ),
-        level: 5
-      });
-
-      mapRef.current = map;
-
-      onActionsReady?.({
-        recenter: ([lat, lng], level = 5) => {
-          map.setCenter(new window.kakao.maps.LatLng(lat, lng));
-          map.setLevel(level);
+    const tryInit = () => {
+      if (cancelled) return;
+      if (!window.kakao || !window.kakao.maps || !window.kakao.maps.load) {
+        attempts += 1;
+        if (attempts <= maxAttempts) {
+          setTimeout(tryInit, 250);
         }
+        return;
+      }
+
+      window.kakao.maps.load(() => {
+        const container = document.getElementById("kakao-map");
+        if (!container || cancelled) return;
+
+        const map = new window.kakao.maps.Map(container, {
+          center: new window.kakao.maps.LatLng(
+            defaultCenter?.latitude ?? 36.3504,
+            defaultCenter?.longitude ?? 127.3845
+          ),
+          level: 5
+        });
+
+        mapRef.current = map;
+
+        onActionsReady?.({
+          recenter: ([lat, lng], level = 5) => {
+            map.setCenter(new window.kakao.maps.LatLng(lat, lng));
+            map.setLevel(level);
+          }
+        });
       });
-    });
+    };
+
+    tryInit();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
