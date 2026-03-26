@@ -2,20 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Linking,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
-  Platform
+  useWindowDimensions
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
 import ScreenHeader from "../components/ScreenHeader";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
 import { auth } from "../lib/firebase";
+import { formatRegion } from "../utils/userFormatters";
 
 function formatTimestamp(value) {
   if (!value) return "";
@@ -26,12 +27,6 @@ function formatTimestamp(value) {
     hour: "2-digit",
     minute: "2-digit"
   });
-}
-
-function formatRegion(region) {
-  if (!region) return "유성구, 대전";
-  if (region.toLowerCase() === "yuseong") return "유성구, 대전";
-  return region;
 }
 
 async function readBrowserLocationPermission() {
@@ -51,26 +46,23 @@ async function readBrowserLocationPermission() {
   return "브라우저 설정 확인";
 }
 
-export default function MyPageScreen({ navigation }) {
+export default function MyPageScreen({ navigation, authUser, refreshAuthState }) {
   const { width } = useWindowDimensions();
   const contentWidth = useMemo(() => Math.min(width, 520), [width]);
-  const [userName, setUserName] = useState("user");
-  const [region, setRegion] = useState("");
   const [balance, setBalance] = useState(0);
   const [logs, setLogs] = useState([]);
   const [locationStatus, setLocationStatus] = useState("확인 중...");
 
-  const loadPage = useCallback(async () => {
-    const [profileRes, permissionStatus, currentUser] = await Promise.all([
-      apiClient.get(API_ENDPOINTS.authMe).catch(() => null),
-      readBrowserLocationPermission(),
-      Promise.resolve(auth.currentUser)
-    ]);
+  const userName = authUser?.name || auth.currentUser?.displayName || auth.currentUser?.email || auth.currentUser?.uid || "user";
+  const regionLabel = formatRegion(authUser?.region, { includeCity: true });
 
-    const profile = profileRes?.data?.user || {};
-    setUserName(profile.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || "user");
-    setRegion(profile.region || "");
+  const loadPage = useCallback(async () => {
+    const permissionStatus = await readBrowserLocationPermission();
     setLocationStatus(permissionStatus);
+
+    if (auth.currentUser && refreshAuthState) {
+      await refreshAuthState(auth.currentUser).catch(() => null);
+    }
 
     try {
       const [balanceRes, logRes] = await Promise.all([
@@ -84,27 +76,24 @@ export default function MyPageScreen({ navigation }) {
       setBalance(0);
       setLogs([]);
     }
-  }, []);
+  }, [refreshAuthState]);
 
   useEffect(() => {
     loadPage();
     const unsubscribe = navigation.addListener("focus", loadPage);
     return unsubscribe;
-  }, [navigation, loadPage]);
+  }, [loadPage, navigation]);
 
   const openPermissionSettings = async () => {
     if (Platform.OS === "web") {
-      Alert.alert(
-        "브라우저 권한",
-        "브라우저 주소창 또는 사이트 설정에서 위치 권한을 변경할 수 있습니다."
-      );
+      Alert.alert("브라우저 권한", "브라우저 주소창 또는 사이트 설정에서 위치 권한을 변경할 수 있습니다.");
       return;
     }
 
     try {
       await Linking.openSettings();
     } catch (error) {
-      Alert.alert("설정 열기 실패", "이 기기에서는 직접 설정 화면을 열 수 없습니다.");
+      Alert.alert("설정 열기 실패", "기기 설정 화면을 열 수 없습니다.");
     }
   };
 
@@ -140,7 +129,7 @@ export default function MyPageScreen({ navigation }) {
                     onPress={() => navigation.navigate("ProfileEdit")}
                     style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
                   >
-                  <Text style={styles.editButtonText}>수정</Text>
+                    <Text style={styles.editButtonText}>수정</Text>
                   </Pressable>
                 </View>
                 <Text style={styles.memberLabel}>회원</Text>
@@ -156,7 +145,7 @@ export default function MyPageScreen({ navigation }) {
 
               <View>
                 <Text style={styles.regionCaption}>현재 지역</Text>
-                <Text style={styles.regionValue}>{formatRegion(region)}</Text>
+                <Text style={styles.regionValue}>{regionLabel}</Text>
               </View>
             </View>
 
@@ -205,7 +194,7 @@ export default function MyPageScreen({ navigation }) {
 
             <View style={styles.logList}>
               {logs.length === 0 ? (
-                <Text style={styles.emptyText}>아직 포인트 내역이 없습니다.</Text>
+                <Text style={styles.emptyText}>아직 포인트 적립 내역이 없습니다.</Text>
               ) : (
                 logs.map((item, index) => (
                   <View key={item.id} style={styles.logRow}>
@@ -214,9 +203,7 @@ export default function MyPageScreen({ navigation }) {
                         <FontAwesome6 name={index % 2 === 0 ? "lightbulb" : "chart-line"} size={18} color="#9CA3AF" />
                       </View>
                       <View>
-                        <Text style={styles.logTitle}>
-                          {index % 2 === 0 ? "탄소 절감 보상" : "이용 보상"}
-                        </Text>
+                        <Text style={styles.logTitle}>{index % 2 === 0 ? "탄소 절감 보상" : "이용 보상"}</Text>
                         <Text style={styles.logDate}>{formatTimestamp(item.earnedAt)}</Text>
                       </View>
                     </View>
@@ -239,7 +226,7 @@ export default function MyPageScreen({ navigation }) {
 
               <View style={styles.permissionRow}>
                 <Text style={styles.permissionLabel}>알림</Text>
-                <Text style={styles.permissionStatusMuted}>설정 안 됨</Text>
+                <Text style={styles.permissionStatusMuted}>설정 예정</Text>
               </View>
             </View>
 
@@ -256,7 +243,7 @@ export default function MyPageScreen({ navigation }) {
               onPress={openHelpCenter}
               style={({ pressed }) => [styles.helpLink, pressed && styles.pressed]}
             >
-                <Text style={styles.helpLinkText}>도움말</Text>
+              <Text style={styles.helpLinkText}>도움말</Text>
             </Pressable>
 
             <View style={styles.footerMetaRow}>
@@ -279,35 +266,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAF9"
   },
-  header: {
-    height: 64,
-    backgroundColor: "#F8FAF9",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    zIndex: 10
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    marginLeft: -4,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#1F2937"
-  },
-  headerSpacer: {
-    width: 40,
-    height: 40
-  },
   content: {
+    flexGrow: 1,
     width: "100%",
     alignSelf: "center",
     paddingHorizontal: 16,

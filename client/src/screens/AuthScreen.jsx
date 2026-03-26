@@ -52,7 +52,7 @@ export default function AuthScreen({ navigation, onAuthed }) {
         throw new Error("user_sync_failed");
       }
 
-      onAuthed({ token, region: syncedUser.region || null });
+      onAuthed({ token, user: syncedUser || null });
       navigation.replace(syncedUser.region ? "Map" : "Onboarding");
     } catch (error) {
       const code = error?.code || error?.message || "";
