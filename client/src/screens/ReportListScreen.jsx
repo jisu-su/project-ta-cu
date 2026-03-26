@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5FBF8"
   },
   content: {
+    flexGrow: 1,
     padding: 24,
     width: "100%",
     alignSelf: "center"

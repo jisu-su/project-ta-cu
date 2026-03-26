@@ -308,6 +308,7 @@ const styles = StyleSheet.create({
     height: 40
   },
   content: {
+    flexGrow: 1,
     width: "100%",
     alignSelf: "center",
     paddingHorizontal: 16,
