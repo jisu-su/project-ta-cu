@@ -42,6 +42,12 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
           recenter: ([lat, lng], level = 5) => {
             map.setCenter(new window.kakao.maps.LatLng(lat, lng));
             map.setLevel(level);
+          },
+          zoomIn: () => {
+            map.setLevel(map.getLevel() - 1);
+          },
+          zoomOut: () => {
+            map.setLevel(map.getLevel() + 1);
           }
         });
       });

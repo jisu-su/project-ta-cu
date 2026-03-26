@@ -1,4 +1,5 @@
 let rideSession = null;
+const MIN_ACCEPTED_ACCURACY_METERS = 30;
 
 function getGeolocation() {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -24,36 +25,69 @@ function createPositionPoint(position) {
   return {
     lat: position.coords.latitude,
     lng: position.coords.longitude,
-    timestamp: position.timestamp
+    timestamp: position.timestamp,
+    accuracy: position.coords.accuracy ?? null
   };
 }
 
-export async function startRideSession() {
-  const options = {
+function shouldStorePosition(position) {
+  const accuracy = position?.coords?.accuracy;
+  if (typeof accuracy !== "number") return true;
+  return accuracy < MIN_ACCEPTED_ACCURACY_METERS;
+}
+
+function notifyLocationWarning(onLocationWarning, payload) {
+  onLocationWarning?.(payload);
+}
+
+export async function startRideSession(callbacks = {}) {
+  const { onLocationWarning } = callbacks;
+  const geolocationOptions = {
     enableHighAccuracy: true,
     maximumAge: 0,
     timeout: 10000
   };
 
   try {
-    const initialPosition = await readInitialPosition(options);
+    const initialPosition = await readInitialPosition(geolocationOptions);
+
+    const acceptedInitialPosition = shouldStorePosition(initialPosition);
+    if (!acceptedInitialPosition) {
+      notifyLocationWarning(onLocationWarning, {
+        type: "low_accuracy",
+        accuracy: initialPosition?.coords?.accuracy ?? null
+      });
+    }
 
     rideSession = {
       startTime: Date.now(),
-      coordinates: [createPositionPoint(initialPosition)],
+      coordinates: acceptedInitialPosition ? [createPositionPoint(initialPosition)] : [],
       watcher: null
     };
 
     rideSession.watcher = watchPosition(
-      options,
+      geolocationOptions,
       (position) => {
         if (!rideSession) return;
+        if (!shouldStorePosition(position)) {
+          notifyLocationWarning(onLocationWarning, {
+            type: "low_accuracy",
+            accuracy: position?.coords?.accuracy ?? null
+          });
+          return;
+        }
         rideSession.coordinates.push(createPositionPoint(position));
       },
       (error) => {
         if (error?.code === error?.PERMISSION_DENIED || error?.code === 1) {
           endRideSession().catch(() => null);
+          return;
         }
+
+        notifyLocationWarning(onLocationWarning, {
+          type: "gps_unstable",
+          code: error?.code ?? null
+        });
       }
     );
 
@@ -62,6 +96,10 @@ export async function startRideSession() {
     if (error?.code === error?.PERMISSION_DENIED || error?.code === 1) {
       throw new Error("location_permission_denied");
     }
+    notifyLocationWarning(onLocationWarning, {
+      type: "gps_unstable",
+      code: error?.code ?? null
+    });
     throw new Error("location_unavailable");
   }
 }

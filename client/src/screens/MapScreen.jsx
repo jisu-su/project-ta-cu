@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -14,6 +14,7 @@ import { signOut } from "firebase/auth";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
 import WebMap from "../components/WebMap";
+import Toast from "../components/Toast";
 import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
 import { calculatePoints } from "../modules/pointModule";
 import { endRideSession, getCurrentSession, startRideSession } from "../modules/rideModule";
@@ -39,6 +40,8 @@ function formatDistance(distanceKm) {
   return distanceKm.toFixed(1);
 }
 
+const GPS_TOAST_MESSAGE = "GPS가 불안정합니다.";
+
 export default function MapScreen({ navigation, route }) {
   const { width } = useWindowDimensions();
   const shellWidth = useMemo(() => Math.min(width, 440), [width]);
@@ -53,9 +56,11 @@ export default function MapScreen({ navigation, route }) {
   const [drawerRegion, setDrawerRegion] = useState("");
   const [rideId, setRideId] = useState(null);
   const [mapActions, setMapActions] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: "" });
+  const toastTimerRef = useRef(null);
+  const lastToastRef = useRef({ message: "", at: 0 });
 
   const coordinates = useMemo(() => session?.coordinates ?? [], [session]);
-  const currentPoint = useMemo(() => (coordinates.length > 0 ? coordinates[coordinates.length - 1] : null), [coordinates]);
   const elapsedMs = useMemo(() => {
     if (!session) return 0;
     return (session.endTime ?? Date.now()) - session.startTime;
@@ -83,6 +88,87 @@ export default function MapScreen({ navigation, route }) {
       durationMin
     };
   }, [coordinates, elapsedMs, session]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showGpsToast = (message = "GPS가 불안정합니다.") => {
+    const now = Date.now();
+    if (lastToastRef.current.message === message && now - lastToastRef.current.at < 3000) {
+      return;
+    }
+
+    lastToastRef.current = { message, at: now };
+
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ visible: true, message });
+    toastTimerRef.current = setTimeout(() => {
+      setToast({ visible: false, message: "" });
+      toastTimerRef.current = null;
+    }, 2400);
+  };
+
+  const handleZoomIn = () => {
+    mapActions?.zoomIn?.();
+  };
+
+  const handleZoomOut = () => {
+    mapActions?.zoomOut?.();
+  };
+
+  const handleCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      Alert.alert("위치 확인 불가", "브라우저에서 위치 서비스를 사용할 수 없습니다.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        mapActions?.recenter?.([lat, lng], 5);
+      },
+      () => {
+        Alert.alert("위치 확인 실패", "현재 위치를 가져올 수 없습니다.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    );
+  };
+
+  const handleCurrentLocationToast = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      showGpsToast("현재 위치 기능을 사용할 수 없습니다.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        mapActions?.recenter?.([lat, lng], 5);
+      },
+      () => {
+        showGpsToast("현재 위치를 가져올 수 없습니다.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    );
+  };
 
   useEffect(() => {
     if (route?.params?.showGuide) {
@@ -148,7 +234,13 @@ export default function MapScreen({ navigation, route }) {
     if (riding) return;
 
     try {
-      const rideSession = await startRideSession();
+      const rideSession = await startRideSession({
+        onLocationWarning: ({ type }) => {
+          if (type === "low_accuracy" || type === "gps_unstable") {
+            showGpsToast(GPS_TOAST_MESSAGE);
+          }
+        }
+      });
       const response = await apiClient.post(API_ENDPOINTS.rideStart);
       const startedRideId = response.data?.rideId;
       if (!startedRideId) {
@@ -288,14 +380,33 @@ export default function MapScreen({ navigation, route }) {
               </View>
             </View>
 
+            <Toast visible={toast.visible} message={toast.message} />
+
+            <View style={styles.mapControls}>
+              <Pressable
+                onPress={handleZoomIn}
+                style={({ pressed }) => [styles.mapControlButton, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="지도 확대"
+              >
+                <Text style={styles.mapControlSymbol}>+</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleZoomOut}
+                style={({ pressed }) => [styles.mapControlButton, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="지도 축소"
+              >
+                <Text style={styles.mapControlSymbol}>-</Text>
+              </Pressable>
+            </View>
+
             <Pressable
-              onPress={() => {
-                const target = currentPoint
-                  ? [currentPoint.lat, currentPoint.lng]
-                  : [DEFAULT_REGION.latitude, DEFAULT_REGION.longitude];
-                mapActions?.recenter(target, currentPoint ? 17 : 13);
-              }}
+              onPress={handleCurrentLocationToast}
               style={({ pressed }) => [styles.recenterButton, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="내 위치"
             >
               <FontAwesome6 name="location-crosshairs" size={16} color="#066544" />
             </Pressable>
@@ -610,6 +721,34 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6
+  },
+  mapControls: {
+    position: "absolute",
+    right: 28,
+    bottom: 176,
+    zIndex: 12,
+    gap: 8
+  },
+  mapControlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#DDE7E2",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8
+  },
+  mapControlSymbol: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontWeight: "800",
+    color: "#066544"
   },
   recenterButton: {
     position: "absolute",
