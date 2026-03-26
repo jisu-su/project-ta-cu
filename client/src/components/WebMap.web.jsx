@@ -36,18 +36,15 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
           level: 5
         });
 
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+
         mapRef.current = map;
 
         onActionsReady?.({
           recenter: ([lat, lng], level = 5) => {
             map.setCenter(new window.kakao.maps.LatLng(lat, lng));
             map.setLevel(level);
-          },
-          zoomIn: () => {
-            map.setLevel(map.getLevel() - 1);
-          },
-          zoomOut: () => {
-            map.setLevel(map.getLevel() + 1);
           }
         });
       });

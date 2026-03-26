@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -40,7 +40,7 @@ function formatDistance(distanceKm) {
   return distanceKm.toFixed(1);
 }
 
-const GPS_TOAST_MESSAGE = "GPS가 불안정합니다.";
+const GPS_TOAST_MESSAGE = "GPS媛 遺덉븞?뺥빀?덈떎.";
 
 export default function MapScreen({ navigation, route }) {
   const { width } = useWindowDimensions();
@@ -97,7 +97,7 @@ export default function MapScreen({ navigation, route }) {
     };
   }, []);
 
-  const showGpsToast = (message = "GPS가 불안정합니다.") => {
+  const showGpsToast = (message = "GPS媛 遺덉븞?뺥빀?덈떎.") => {
     const now = Date.now();
     if (lastToastRef.current.message === message && now - lastToastRef.current.at < 3000) {
       return;
@@ -116,40 +116,9 @@ export default function MapScreen({ navigation, route }) {
     }, 2400);
   };
 
-  const handleZoomIn = () => {
-    mapActions?.zoomIn?.();
-  };
-
-  const handleZoomOut = () => {
-    mapActions?.zoomOut?.();
-  };
-
-  const handleCurrentLocation = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      Alert.alert("위치 확인 불가", "브라우저에서 위치 서비스를 사용할 수 없습니다.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        mapActions?.recenter?.([lat, lng], 5);
-      },
-      () => {
-        Alert.alert("위치 확인 실패", "현재 위치를 가져올 수 없습니다.");
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000
-      }
-    );
-  };
-
   const handleCurrentLocationToast = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      showGpsToast("현재 위치 기능을 사용할 수 없습니다.");
+      showGpsToast("?꾩옱 ?꾩튂 湲곕뒫???ъ슜?????놁뒿?덈떎.");
       return;
     }
 
@@ -160,7 +129,7 @@ export default function MapScreen({ navigation, route }) {
         mapActions?.recenter?.([lat, lng], 5);
       },
       () => {
-        showGpsToast("현재 위치를 가져올 수 없습니다.");
+        showGpsToast("?꾩옱 ?꾩튂瑜?媛?몄삱 ???놁뒿?덈떎.");
       },
       {
         enableHighAccuracy: true,
@@ -257,10 +226,10 @@ export default function MapScreen({ navigation, route }) {
       setRiding(false);
       setRideId(null);
       if (error?.message === "location_permission_denied") {
-        Alert.alert("위치 권한 필요", "주행 시작을 위해 위치 권한을 허용해주세요.");
+        Alert.alert("?꾩튂 沅뚰븳 ?꾩슂", "二쇳뻾 ?쒖옉???꾪빐 ?꾩튂 沅뚰븳???덉슜?댁＜?몄슂.");
         return;
       }
-      Alert.alert("주행 시작 실패", "주행 시작에 실패했습니다. 다시 시도해주세요.");
+      Alert.alert("二쇳뻾 ?쒖옉 ?ㅽ뙣", "二쇳뻾 ?쒖옉???ㅽ뙣?덉뒿?덈떎. ?ㅼ떆 ?쒕룄?댁＜?몄슂.");
     }
   };
 
@@ -270,14 +239,14 @@ export default function MapScreen({ navigation, route }) {
 
     if (!snapshot) {
       if (showReport) {
-        Alert.alert("주행 종료 실패", "주행 중인 세션이 없어 종료할 수 없습니다.");
+        Alert.alert("二쇳뻾 醫낅즺 ?ㅽ뙣", "二쇳뻾 以묒씤 ?몄뀡???놁뼱 醫낅즺?????놁뒿?덈떎.");
       }
       return null;
     }
 
     if (!rideId) {
       if (showReport) {
-        Alert.alert("주행 종료 실패", "주행 시작 정보가 없어 종료할 수 없습니다.");
+        Alert.alert("二쇳뻾 醫낅즺 ?ㅽ뙣", "二쇳뻾 ?쒖옉 ?뺣낫媛 ?놁뼱 醫낅즺?????놁뒿?덈떎.");
       }
       return null;
     }
@@ -307,7 +276,7 @@ export default function MapScreen({ navigation, route }) {
       return report;
     } catch (error) {
       if (showReport) {
-        Alert.alert("주행 종료 실패", "서버에 이용 종료를 저장하지 못했습니다.");
+        Alert.alert("二쇳뻾 醫낅즺 ?ㅽ뙣", "?쒕쾭???댁슜 醫낅즺瑜???ν븯吏 紐삵뻽?듬땲??");
       }
       throw error;
     }
@@ -316,9 +285,9 @@ export default function MapScreen({ navigation, route }) {
   const logout = () => {
     if (riding) {
       Alert.alert("이용 중단", "이용을 중단하고 앱을 종료하시겠습니까?", [
-        { text: "아니오", style: "cancel" },
+        { text: "아니요", style: "cancel" },
         {
-          text: "예",
+          text: "종료",
           style: "destructive",
           onPress: () => {
             void (async () => {
@@ -354,7 +323,7 @@ export default function MapScreen({ navigation, route }) {
         <View style={[styles.shell, { maxWidth: shellWidth }]}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>타슈 이용 지도</Text>
+              <Text style={styles.title}>????댁슜 吏??</Text>
               <Text style={styles.subtitle}>{statusLabel}</Text>
             </View>
 
@@ -382,31 +351,12 @@ export default function MapScreen({ navigation, route }) {
 
             <Toast visible={toast.visible} message={toast.message} />
 
-            <View style={styles.mapControls}>
-              <Pressable
-                onPress={handleZoomIn}
-                style={({ pressed }) => [styles.mapControlButton, pressed && styles.pressed]}
-                accessibilityRole="button"
-                accessibilityLabel="지도 확대"
-              >
-                <Text style={styles.mapControlSymbol}>+</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleZoomOut}
-                style={({ pressed }) => [styles.mapControlButton, pressed && styles.pressed]}
-                accessibilityRole="button"
-                accessibilityLabel="지도 축소"
-              >
-                <Text style={styles.mapControlSymbol}>-</Text>
-              </Pressable>
-            </View>
 
             <Pressable
               onPress={handleCurrentLocationToast}
               style={({ pressed }) => [styles.recenterButton, pressed && styles.pressed]}
               accessibilityRole="button"
-              accessibilityLabel="내 위치"
+              accessibilityLabel="???꾩튂"
             >
               <FontAwesome6 name="location-crosshairs" size={16} color="#066544" />
             </Pressable>
@@ -421,7 +371,7 @@ export default function MapScreen({ navigation, route }) {
                     <FontAwesome6 name="stopwatch" size={15} color="#066544" />
                   </View>
                   <View>
-                    <Text style={styles.timeLabel}>이용 시간</Text>
+                    <Text style={styles.timeLabel}>?댁슜 ?쒓컙</Text>
                     <Text style={styles.timeValue}>{currentTimeLabel}</Text>
                   </View>
                 </View>
@@ -448,26 +398,26 @@ export default function MapScreen({ navigation, route }) {
 
             <View style={styles.sheet}>
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>실시간 이용 리포트</Text>
+              <Text style={styles.sheetTitle}>?ㅼ떆媛??댁슜 由ы룷??</Text>
 
               <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>이동 거리</Text>
+                  <Text style={styles.statLabel}>?대룞 嫄곕━</Text>
                   <Text style={styles.statValue}>
                     {formatDistance(liveReport.distanceKm)} <Text style={styles.statUnit}>km</Text>
                   </Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>이용 시간</Text>
+                  <Text style={styles.statLabel}>?댁슜 ?쒓컙</Text>
                   <Text style={styles.statValue}>
-                    {liveReport.durationMin} <Text style={styles.statUnit}>분</Text>
+                    {liveReport.durationMin} <Text style={styles.statUnit}>遺?</Text>
                   </Text>
                 </View>
               </View>
 
               <View style={styles.greenSummary}>
                 <View>
-                  <Text style={styles.greenLabel}>실시간 탄소 감축량</Text>
+                  <Text style={styles.greenLabel}>?ㅼ떆媛??꾩냼 媛먯텞??</Text>
                   <Text style={styles.greenValue}>
                     {liveReport.carbonReductionKg.toFixed(2)} <Text style={styles.greenUnit}>kg</Text>
                   </Text>
@@ -479,7 +429,7 @@ export default function MapScreen({ navigation, route }) {
               </View>
 
               <View style={styles.pointsRow}>
-                <Text style={styles.pointsLabel}>적립 포인트</Text>
+                <Text style={styles.pointsLabel}>?곷┰ ?ъ씤??</Text>
                 <Text style={styles.pointsValue}>{liveReport.pointsEarned} P</Text>
               </View>
 
@@ -487,7 +437,7 @@ export default function MapScreen({ navigation, route }) {
                 onPress={() => setShowReportSheet(false)}
                 style={({ pressed }) => [styles.sheetCloseButton, pressed && styles.pressed]}
               >
-                <Text style={styles.sheetCloseText}>닫기</Text>
+                <Text style={styles.sheetCloseText}>?リ린</Text>
               </Pressable>
             </View>
           </View>
@@ -505,7 +455,7 @@ export default function MapScreen({ navigation, route }) {
                       <FontAwesome6 name="user" size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.drawerProfileTextWrap}>
-                      <Text style={styles.drawerWelcome}>다시 만나서 반갑습니다</Text>
+                      <Text style={styles.drawerWelcome}>?ㅼ떆 留뚮굹??諛섍컩?듬땲??</Text>
                       <Text style={styles.drawerUserName} numberOfLines={1} ellipsizeMode="tail">
                         {drawerUserName}
                       </Text>
@@ -520,7 +470,7 @@ export default function MapScreen({ navigation, route }) {
 
               <View style={styles.drawerLogoutRow}>
                 <Pressable onPress={logout} style={({ pressed }) => [styles.drawerLogoutButton, pressed && styles.pressed]}>
-                  <Text style={styles.drawerLogoutText}>로그아웃</Text>
+                  <Text style={styles.drawerLogoutText}>濡쒓렇?꾩썐</Text>
                   <FontAwesome6 name="arrow-right" size={12} color="#FFFFFF" />
                 </Pressable>
               </View>
@@ -536,7 +486,7 @@ export default function MapScreen({ navigation, route }) {
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="file-lines" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>이용 리포트 목록</Text>
+                  <Text style={styles.drawerItemText}>?댁슜 由ы룷??紐⑸줉</Text>
                 </Pressable>
 
                 <Pressable
@@ -549,7 +499,7 @@ export default function MapScreen({ navigation, route }) {
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="user" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>마이페이지</Text>
+                  <Text style={styles.drawerItemText}>留덉씠?섏씠吏</Text>
                 </Pressable>
 
                 <Pressable
@@ -562,7 +512,7 @@ export default function MapScreen({ navigation, route }) {
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="circle-info" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>이용 안내</Text>
+                  <Text style={styles.drawerItemText}>?댁슜 ?덈궡</Text>
                 </Pressable>
 
                 <Pressable
@@ -576,8 +526,8 @@ export default function MapScreen({ navigation, route }) {
                     <FontAwesome6 name="lightbulb" size={18} color="#066544" />
                   </View>
                   <View style={styles.drawerItemColumn}>
-                    <Text style={styles.drawerItemText}>탄소 중립 퀴즈</Text>
-                    <Text style={styles.drawerItemSubText}>포인트 적립 가능!</Text>
+                    <Text style={styles.drawerItemText}>?꾩냼 以묐┰ ?댁쫰</Text>
+                    <Text style={styles.drawerItemSubText}>?ъ씤???곷┰ 媛??</Text>
                   </View>
                   <View style={styles.drawerDot} />
                 </Pressable>
@@ -597,7 +547,7 @@ export default function MapScreen({ navigation, route }) {
                     <FontAwesome6 name="location-dot" size={18} color="#066544" />
                   </View>
                   <View style={styles.drawerItemColumn}>
-                    <Text style={styles.drawerRegionCaption}>현재 지역 설정</Text>
+                    <Text style={styles.drawerRegionCaption}>?꾩옱 吏???ㅼ젙</Text>
                     <Text style={styles.drawerRegionValue}>{drawerRegion.toLowerCase()}</Text>
                   </View>
                   <FontAwesome6 name="chevron-down" size={14} color="#9CA3AF" style={styles.drawerArrow} />
@@ -606,14 +556,14 @@ export default function MapScreen({ navigation, route }) {
 
               <View style={styles.drawerFooter}>
                 <View style={styles.drawerFooterTop}>
-                  <Pressable onPress={() => Alert.alert("준비 중", "도움말은 아직 준비 중입니다.")}>
+                  <Pressable onPress={() => Alert.alert("준비 중", "도움말 센터는 아직 연결되지 않았습니다.")}>
                     <Text style={styles.drawerHelpLink}>도움말</Text>
                   </Pressable>
                 </View>
 
                 <View style={styles.drawerFooterBottom}>
-                  <Text style={styles.drawerFooterMeta}>타슈 탄소중립 v2.4.0</Text>
-                  <Text style={styles.drawerFooterMeta}>© 2024 Tashu</Text>
+                  <Text style={styles.drawerFooterMeta}>????꾩냼以묐┰ v2.4.0</Text>
+                  <Text style={styles.drawerFooterMeta}>짤 2024 Tashu</Text>
                 </View>
               </View>
             </View>
@@ -623,16 +573,16 @@ export default function MapScreen({ navigation, route }) {
         <Modal transparent visible={showGuide} animationType="fade" onRequestClose={() => setShowGuide(false)}>
           <View style={styles.guideBackdrop}>
             <View style={styles.guideCard}>
-              <Text style={styles.guideTitle}>탄소 절감 이용 안내</Text>
-              <Text style={styles.guideText}>1. 가까운 대여소 위치를 확인하고 이동 경로를 짧게 잡아보세요.</Text>
-              <Text style={styles.guideText}>2. 자전거 이용으로 자동차 이동을 줄이면 탄소 절감에 도움이 됩니다.</Text>
-              <Text style={styles.guideText}>3. 이용 종료 후 리포트에서 거리, 절감량, 적립 포인트를 확인하세요.</Text>
+              <Text style={styles.guideTitle}>?꾩냼 ?덇컧 ?댁슜 ?덈궡</Text>
+              <Text style={styles.guideText}>1. 媛源뚯슫 ??ъ냼 ?꾩튂瑜??뺤씤?섍퀬 ?대룞 寃쎈줈瑜?吏㏐쾶 ?≪븘蹂댁꽭??</Text>
+              <Text style={styles.guideText}>2. ?먯쟾嫄??댁슜?쇰줈 ?먮룞李??대룞??以꾩씠硫??꾩냼 ?덇컧???꾩????⑸땲??</Text>
+              <Text style={styles.guideText}>3. ?댁슜 醫낅즺 ??由ы룷?몄뿉??嫄곕━, ?덇컧?? ?곷┰ ?ъ씤?몃? ?뺤씤?섏꽭??</Text>
 
               <Pressable
                 onPress={() => setShowGuide(false)}
                 style={({ pressed }) => [styles.guideCloseButton, pressed && styles.pressed]}
               >
-                <Text style={styles.guideCloseText}>확인</Text>
+                <Text style={styles.guideCloseText}>?뺤씤</Text>
               </Pressable>
             </View>
           </View>
@@ -721,34 +671,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6
-  },
-  mapControls: {
-    position: "absolute",
-    right: 28,
-    bottom: 176,
-    zIndex: 12,
-    gap: 8
-  },
-  mapControlButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#DDE7E2",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8
-  },
-  mapControlSymbol: {
-    fontSize: 22,
-    lineHeight: 24,
-    fontWeight: "800",
-    color: "#066544"
   },
   recenterButton: {
     position: "absolute",
@@ -1197,3 +1119,9 @@ const styles = StyleSheet.create({
     opacity: 0.88
   }
 });
+
+
+
+
+
+
