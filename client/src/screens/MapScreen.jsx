@@ -39,7 +39,7 @@ function formatDistance(distanceKm) {
   return distanceKm.toFixed(1);
 }
 
-export default function MapScreen({ navigation, route }) {
+export default function MapScreen({ navigation, route, authUser, refreshAuthState }) {
   const { width } = useWindowDimensions();
   const shellWidth = useMemo(() => Math.min(width, 440), [width]);
   const [stations, setStations] = useState([]);
@@ -49,10 +49,9 @@ export default function MapScreen({ navigation, route }) {
   const [showGuide, setShowGuide] = useState(false);
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [drawerUserName, setDrawerUserName] = useState("");
-  const [drawerRegion, setDrawerRegion] = useState("");
   const [rideId, setRideId] = useState(null);
   const [mapActions, setMapActions] = useState(null);
+  const drawerUserName = authUser?.name || auth.currentUser?.displayName || auth.currentUser?.email || auth.currentUser?.uid || "user";
 
   const coordinates = useMemo(() => session?.coordinates ?? [], [session]);
   const currentPoint = useMemo(() => (coordinates.length > 0 ? coordinates[coordinates.length - 1] : null), [coordinates]);
@@ -91,18 +90,14 @@ export default function MapScreen({ navigation, route }) {
   }, [route?.params?.showGuide]);
 
   useEffect(() => {
-    const loadDrawerProfile = async () => {
-      const [profileRes, currentUser] = await Promise.all([
-        apiClient.get(API_ENDPOINTS.authMe).catch(() => null),
-        Promise.resolve(auth.currentUser)
-      ]);
-      const profile = profileRes?.data?.user || {};
-      setDrawerUserName(profile.name || currentUser?.displayName || currentUser?.email || currentUser?.uid || "user");
-      setDrawerRegion(profile.region || "yuseong");
-    };
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (auth.currentUser && refreshAuthState) {
+        void refreshAuthState(auth.currentUser).catch(() => null);
+      }
+    });
 
-    loadDrawerProfile();
-  }, []);
+    return unsubscribe;
+  }, [navigation, refreshAuthState]);
 
   useEffect(() => {
     const loadStations = async () => {
@@ -471,26 +466,6 @@ export default function MapScreen({ navigation, route }) {
                   <View style={styles.drawerDot} />
                 </Pressable>
 
-                <View style={styles.drawerDividerRow}>
-                  <View style={styles.drawerDivider} />
-                </View>
-
-                <Pressable
-                  style={styles.drawerItem}
-                  onPress={() => {
-                    setShowMenu(false);
-                    navigation.navigate("Onboarding");
-                  }}
-                >
-                  <View style={styles.drawerItemIconWrap}>
-                    <FontAwesome6 name="location-dot" size={18} color="#066544" />
-                  </View>
-                  <View style={styles.drawerItemColumn}>
-                    <Text style={styles.drawerRegionCaption}>현재 지역 설정</Text>
-                    <Text style={styles.drawerRegionValue}>{drawerRegion.toLowerCase()}</Text>
-                  </View>
-                  <FontAwesome6 name="chevron-down" size={14} color="#9CA3AF" style={styles.drawerArrow} />
-                </Pressable>
               </View>
 
               <View style={styles.drawerFooter}>
@@ -964,29 +939,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#EF4444",
     marginLeft: 10
-  },
-  drawerDividerRow: {
-    paddingHorizontal: 24,
-    paddingVertical: 8
-  },
-  drawerDivider: {
-    height: 1,
-    backgroundColor: "#EEF2F7",
-    width: "100%"
-  },
-  drawerRegionCaption: {
-    fontSize: 12,
-    color: "#9CA3AF"
-  },
-  drawerRegionValue: {
-    marginTop: 2,
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#066544",
-    textTransform: "uppercase"
-  },
-  drawerArrow: {
-    marginLeft: 12
   },
   drawerFooter: {
     borderTopWidth: 1,

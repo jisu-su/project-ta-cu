@@ -16,8 +16,8 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
 
     try {
       const response = await apiClient.patch(API_ENDPOINTS.authMe, { region: selected });
-      const syncedRegion = response.data?.user?.region || selected;
-      onCompleted?.(syncedRegion);
+      const syncedUser = response.data?.user || { region: selected };
+      onCompleted?.(syncedUser);
       navigation.replace("Map", { showGuide: true });
     } catch (error) {
       Alert.alert("지역 저장 실패", "지역 정보를 저장하지 못했습니다. 네트워크와 로그인 상태를 확인해 주세요.");
