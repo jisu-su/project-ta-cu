@@ -12,7 +12,7 @@ export default function Toast({ visible, message }) {
     </View>
   );
 }
-
+  
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
