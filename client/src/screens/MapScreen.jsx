@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Modal,
@@ -14,6 +14,7 @@ import { signOut } from "firebase/auth";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
 import WebMap from "../components/WebMap";
+import Toast from "../components/Toast";
 import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
 import { calculatePoints } from "../modules/pointModule";
 import { endRideSession, getCurrentSession, startRideSession } from "../modules/rideModule";
@@ -39,6 +40,8 @@ function formatDistance(distanceKm) {
   return distanceKm.toFixed(1);
 }
 
+const GPS_TOAST_MESSAGE = "GPS가 불안정합니다.";
+
 export default function MapScreen({ navigation, route, authUser, refreshAuthState }) {
   const { width } = useWindowDimensions();
   const shellWidth = useMemo(() => Math.min(width, 440), [width]);
@@ -51,10 +54,12 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
   const [showMenu, setShowMenu] = useState(false);
   const [rideId, setRideId] = useState(null);
   const [mapActions, setMapActions] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: "" });
+  const toastTimerRef = useRef(null);
+  const lastToastRef = useRef({ message: "", at: 0 });
   const drawerUserName = authUser?.name || auth.currentUser?.displayName || auth.currentUser?.email || auth.currentUser?.uid || "user";
 
   const coordinates = useMemo(() => session?.coordinates ?? [], [session]);
-  const currentPoint = useMemo(() => (coordinates.length > 0 ? coordinates[coordinates.length - 1] : null), [coordinates]);
   const elapsedMs = useMemo(() => {
     if (!session) return 0;
     return (session.endTime ?? Date.now()) - session.startTime;
@@ -82,6 +87,56 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
       durationMin
     };
   }, [coordinates, elapsedMs, session]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showGpsToast = (message = "GPS가 불안정합니다.") => {
+    const now = Date.now();
+    if (lastToastRef.current.message === message && now - lastToastRef.current.at < 3000) {
+      return;
+    }
+
+    lastToastRef.current = { message, at: now };
+
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ visible: true, message });
+    toastTimerRef.current = setTimeout(() => {
+      setToast({ visible: false, message: "" });
+      toastTimerRef.current = null;
+    }, 2400);
+  };
+
+  const handleCurrentLocationToast = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      showGpsToast("현재 위치 기능을 사용할 수 없습니다.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        mapActions?.recenter?.([lat, lng], 5);
+      },
+      () => {
+        showGpsToast("현재 위치를 가져올 수 없습니다.");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    );
+  };
 
   useEffect(() => {
     if (route?.params?.showGuide) {
@@ -143,7 +198,13 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
     if (riding) return;
 
     try {
-      const rideSession = await startRideSession();
+      const rideSession = await startRideSession({
+        onLocationWarning: ({ type }) => {
+          if (type === "low_accuracy" || type === "gps_unstable") {
+            showGpsToast(GPS_TOAST_MESSAGE);
+          }
+        }
+      });
       const response = await apiClient.post(API_ENDPOINTS.rideStart);
       const startedRideId = response.data?.rideId;
       if (!startedRideId) {
@@ -160,10 +221,10 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
       setRiding(false);
       setRideId(null);
       if (error?.message === "location_permission_denied") {
-        Alert.alert("위치 권한 필요", "주행 시작을 위해 위치 권한을 허용해주세요.");
+        Alert.alert("위치 권한 필요", "주행 시작을 위해 위치 권한을 허용해 주세요.");
         return;
       }
-      Alert.alert("주행 시작 실패", "주행 시작에 실패했습니다. 다시 시도해주세요.");
+      Alert.alert("주행 시작 실패", "주행 시작에 실패했습니다. 다시 시도해 주세요.");
     }
   };
 
@@ -219,9 +280,9 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
   const logout = () => {
     if (riding) {
       Alert.alert("이용 중단", "이용을 중단하고 앱을 종료하시겠습니까?", [
-        { text: "아니오", style: "cancel" },
+        { text: "아니요", style: "cancel" },
         {
-          text: "예",
+          text: "종료",
           style: "destructive",
           onPress: () => {
             void (async () => {
@@ -283,14 +344,14 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               </View>
             </View>
 
+            <Toast visible={toast.visible} message={toast.message} />
+
+
             <Pressable
-              onPress={() => {
-                const target = currentPoint
-                  ? [currentPoint.lat, currentPoint.lng]
-                  : [DEFAULT_REGION.latitude, DEFAULT_REGION.longitude];
-                mapActions?.recenter(target, currentPoint ? 17 : 13);
-              }}
+              onPress={handleCurrentLocationToast}
               style={({ pressed }) => [styles.recenterButton, pressed && styles.pressed]}
+              accessibilityRole="button"
+                accessibilityLabel="현재 위치"
             >
               <FontAwesome6 name="location-crosshairs" size={16} color="#066544" />
             </Pressable>
@@ -332,26 +393,26 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
 
             <View style={styles.sheet}>
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>실시간 이용 리포트</Text>
+               <Text style={styles.sheetTitle}>실시간 이용 리포트</Text>
 
               <View style={styles.statsGrid}>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>이동 거리</Text>
+                   <Text style={styles.statLabel}>이동 거리</Text>
                   <Text style={styles.statValue}>
                     {formatDistance(liveReport.distanceKm)} <Text style={styles.statUnit}>km</Text>
                   </Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>이용 시간</Text>
+                   <Text style={styles.statLabel}>이용 시간</Text>
                   <Text style={styles.statValue}>
-                    {liveReport.durationMin} <Text style={styles.statUnit}>분</Text>
+                     {liveReport.durationMin} <Text style={styles.statUnit}>분</Text>
                   </Text>
                 </View>
               </View>
 
               <View style={styles.greenSummary}>
                 <View>
-                  <Text style={styles.greenLabel}>실시간 탄소 감축량</Text>
+                   <Text style={styles.greenLabel}>실시간 탄소 감축량</Text>
                   <Text style={styles.greenValue}>
                     {liveReport.carbonReductionKg.toFixed(2)} <Text style={styles.greenUnit}>kg</Text>
                   </Text>
@@ -363,7 +424,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               </View>
 
               <View style={styles.pointsRow}>
-                <Text style={styles.pointsLabel}>적립 포인트</Text>
+                 <Text style={styles.pointsLabel}>적립 포인트</Text>
                 <Text style={styles.pointsValue}>{liveReport.pointsEarned} P</Text>
               </View>
 
@@ -371,7 +432,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                 onPress={() => setShowReportSheet(false)}
                 style={({ pressed }) => [styles.sheetCloseButton, pressed && styles.pressed]}
               >
-                <Text style={styles.sheetCloseText}>닫기</Text>
+                 <Text style={styles.sheetCloseText}>닫기</Text>
               </Pressable>
             </View>
           </View>
@@ -389,7 +450,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                       <FontAwesome6 name="user" size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.drawerProfileTextWrap}>
-                      <Text style={styles.drawerWelcome}>다시 만나서 반갑습니다</Text>
+                      <Text style={styles.drawerWelcome}>다시 만나서 반갑습니다.</Text>
                       <Text style={styles.drawerUserName} numberOfLines={1} ellipsizeMode="tail">
                         {drawerUserName}
                       </Text>
@@ -404,7 +465,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
 
               <View style={styles.drawerLogoutRow}>
                 <Pressable onPress={logout} style={({ pressed }) => [styles.drawerLogoutButton, pressed && styles.pressed]}>
-                  <Text style={styles.drawerLogoutText}>로그아웃</Text>
+                   <Text style={styles.drawerLogoutText}>로그아웃</Text>
                   <FontAwesome6 name="arrow-right" size={12} color="#FFFFFF" />
                 </Pressable>
               </View>
@@ -420,7 +481,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="file-lines" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>이용 리포트 목록</Text>
+                   <Text style={styles.drawerItemText}>이용 리포트 목록</Text>
                 </Pressable>
 
                 <Pressable
@@ -433,7 +494,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="user" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>마이페이지</Text>
+                   <Text style={styles.drawerItemText}>마이페이지</Text>
                 </Pressable>
 
                 <Pressable
@@ -446,7 +507,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   <View style={styles.drawerItemIconWrap}>
                     <FontAwesome6 name="circle-info" size={18} color="#066544" />
                   </View>
-                  <Text style={styles.drawerItemText}>이용 안내</Text>
+                   <Text style={styles.drawerItemText}>이용 안내</Text>
                 </Pressable>
 
                 <Pressable
@@ -460,24 +521,23 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                     <FontAwesome6 name="lightbulb" size={18} color="#066544" />
                   </View>
                   <View style={styles.drawerItemColumn}>
-                    <Text style={styles.drawerItemText}>탄소 중립 퀴즈</Text>
-                    <Text style={styles.drawerItemSubText}>포인트 적립 가능!</Text>
+                     <Text style={styles.drawerItemText}>탄소 중립 퀴즈</Text>
+                     <Text style={styles.drawerItemSubText}>자전거 이용 가능</Text>
                   </View>
                   <View style={styles.drawerDot} />
                 </Pressable>
-
               </View>
 
               <View style={styles.drawerFooter}>
                 <View style={styles.drawerFooterTop}>
-                  <Pressable onPress={() => Alert.alert("준비 중", "도움말은 아직 준비 중입니다.")}>
+                  <Pressable onPress={() => Alert.alert("준비 중", "도움말 센터는 아직 연결되지 않았습니다.")}>
                     <Text style={styles.drawerHelpLink}>도움말</Text>
                   </Pressable>
                 </View>
 
                 <View style={styles.drawerFooterBottom}>
-                  <Text style={styles.drawerFooterMeta}>타슈 탄소중립 v2.4.0</Text>
-                  <Text style={styles.drawerFooterMeta}>© 2024 Tashu</Text>
+                   <Text style={styles.drawerFooterMeta}>타슈 자전거 v2.4.0</Text>
+                   <Text style={styles.drawerFooterMeta}>© 2024 Tashu</Text>
                 </View>
               </View>
             </View>
@@ -487,16 +547,16 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
         <Modal transparent visible={showGuide} animationType="fade" onRequestClose={() => setShowGuide(false)}>
           <View style={styles.guideBackdrop}>
             <View style={styles.guideCard}>
-              <Text style={styles.guideTitle}>탄소 절감 이용 안내</Text>
-              <Text style={styles.guideText}>1. 가까운 대여소 위치를 확인하고 이동 경로를 짧게 잡아보세요.</Text>
-              <Text style={styles.guideText}>2. 자전거 이용으로 자동차 이동을 줄이면 탄소 절감에 도움이 됩니다.</Text>
-              <Text style={styles.guideText}>3. 이용 종료 후 리포트에서 거리, 절감량, 적립 포인트를 확인하세요.</Text>
+               <Text style={styles.guideTitle}>자전거 이용 안내</Text>
+               <Text style={styles.guideText}>1. 가까운 대여소 위치를 확인하고 이동 경로를 계획해 보세요.</Text>
+               <Text style={styles.guideText}>2. 자전거 이용으로 자동차 이동을 줄이면 탄소 감축에 도움이 됩니다.</Text>
+               <Text style={styles.guideText}>3. 이용 종료 후 리포트에서 거리, 탄소 감축, 포인트를 확인하세요.</Text>
 
               <Pressable
                 onPress={() => setShowGuide(false)}
                 style={({ pressed }) => [styles.guideCloseButton, pressed && styles.pressed]}
               >
-                <Text style={styles.guideCloseText}>확인</Text>
+                 <Text style={styles.guideCloseText}>확인</Text>
               </Pressable>
             </View>
           </View>
@@ -1010,3 +1070,9 @@ const styles = StyleSheet.create({
     opacity: 0.88
   }
 });
+
+
+
+
+
+
