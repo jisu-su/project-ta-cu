@@ -11,7 +11,7 @@ import {
   View,
   useWindowDimensions
 } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 import ScreenHeader from "../components/ScreenHeader";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
@@ -117,7 +117,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
           <View style={styles.profileCard}>
             <View style={styles.profileRow}>
               <View style={styles.avatar}>
-                <FontAwesome6 name="user" size={34} color="#066544" />
+                <AppIcon name="user" size={34} color="#066544" />
               </View>
 
               <View style={styles.profileContent}>
@@ -140,7 +140,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
           <View style={styles.regionCard}>
             <View style={styles.regionLeft}>
               <View style={styles.regionIconWrap}>
-                <FontAwesome6 name="location-dot" size={18} color="#066544" />
+                <AppIcon name="location-dot" size={18} color="#066544" />
               </View>
 
               <View>
@@ -153,7 +153,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
               onPress={() => navigation.navigate("Onboarding")}
               style={({ pressed }) => [styles.regionArrowButton, pressed && styles.pressed]}
             >
-              <FontAwesome6 name="chevron-right" size={16} color="#9CA3AF" />
+              <AppIcon name="chevron-right" size={16} color="#9CA3AF" />
             </Pressable>
           </View>
 
@@ -168,7 +168,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
               </View>
 
               <View style={styles.pointIconWrap}>
-                <FontAwesome6 name="coins" size={22} color="#FFFFFF" />
+                <AppIcon name="coins" size={22} color="#FFFFFF" />
               </View>
             </View>
 
@@ -188,7 +188,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
                 style={({ pressed }) => [styles.sectionLinkButton, pressed && styles.pressed]}
               >
                 <Text style={styles.sectionLinkText}>전체 보기</Text>
-                <FontAwesome6 name="chevron-right" size={10} color="#9CA3AF" />
+                <AppIcon name="chevron-right" size={10} color="#9CA3AF" />
               </Pressable>
             </View>
 
@@ -200,7 +200,7 @@ export default function MyPageScreen({ navigation, authUser, refreshAuthState })
                   <View key={item.id} style={styles.logRow}>
                     <View style={styles.logLeft}>
                       <View style={styles.logIconWrap}>
-                        <FontAwesome6 name={index % 2 === 0 ? "lightbulb" : "chart-line"} size={18} color="#9CA3AF" />
+                        <AppIcon name={index % 2 === 0 ? "lightbulb" : "chart-line"} size={18} color="#9CA3AF" />
                       </View>
                       <View>
                         <Text style={styles.logTitle}>{index % 2 === 0 ? "탄소 절감 보상" : "이용 보상"}</Text>
