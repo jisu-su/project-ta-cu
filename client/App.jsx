@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
@@ -21,37 +21,45 @@ const Stack = createStackNavigator();
 
 export default function App() {
   const [booting, setBooting] = useState(true);
-  const [authState, setAuthState] = useState({ token: null, region: null });
+  const [authState, setAuthState] = useState({ token: null, user: null });
+
+  const hydrateAuthState = useCallback(async (currentUser) => {
+    if (!currentUser) {
+      setAuthState({ token: null, user: null });
+      return;
+    }
+
+    const [token, profile] = await Promise.all([
+      currentUser.getIdToken(),
+      apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
+    ]);
+
+    const user = profile?.data?.user || null;
+    setAuthState({ token, user });
+  }, []);
+
+  const mergeAuthUser = useCallback((nextUser) => {
+    setAuthState((prev) => ({
+      ...prev,
+      user: nextUser ? { ...(prev.user || {}), ...nextUser } : prev.user
+    }));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        try {
-        if (!currentUser) {
-          setAuthState({ token: null, region: null });
-          return;
-        }
-
-        const [token, profile] = await Promise.all([
-          currentUser.getIdToken(),
-          apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
-        ]);
-
-        const user = profile?.data?.user || {};
-        setAuthState({
-          token,
-          region: user.region || null
-        });
+      try {
+        await hydrateAuthState(currentUser);
       } finally {
         setBooting(false);
       }
     });
 
     return unsubscribe;
-  }, []);
+  }, [hydrateAuthState]);
 
   const initialRoute = useMemo(() => {
     if (!authState.token) return "Auth";
-    if (!authState.region) return "Onboarding";
+    if (!authState.user?.region) return "Onboarding";
     return "Map";
   }, [authState]);
 
@@ -65,18 +73,19 @@ export default function App() {
           {(props) => <AuthScreen {...props} onAuthed={setAuthState} />}
         </Stack.Screen>
         <Stack.Screen name="Onboarding">
-          {(props) => (
-            <OnboardingScreen
-              {...props}
-              onCompleted={(region) => setAuthState((prev) => ({ ...prev, region }))}
-            />
-          )}
+          {(props) => <OnboardingScreen {...props} onCompleted={mergeAuthUser} />}
         </Stack.Screen>
-        <Stack.Screen name="Map" component={MapScreen} />
+        <Stack.Screen name="Map">
+          {(props) => <MapScreen {...props} authUser={authState.user} refreshAuthState={hydrateAuthState} />}
+        </Stack.Screen>
         <Stack.Screen name="Report" component={ReportScreen} />
         <Stack.Screen name="ReportList" component={ReportListScreen} />
-        <Stack.Screen name="MyPage" component={MyPageScreen} />
-        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+        <Stack.Screen name="MyPage">
+          {(props) => <MyPageScreen {...props} authUser={authState.user} refreshAuthState={hydrateAuthState} />}
+        </Stack.Screen>
+        <Stack.Screen name="ProfileEdit">
+          {(props) => <ProfileEditScreen {...props} authUser={authState.user} onUpdated={mergeAuthUser} />}
+        </Stack.Screen>
         <Stack.Screen name="Quiz" component={QuizScreen} />
         <Stack.Screen name="Permission" component={PermissionScreen} />
       </Stack.Navigator>

@@ -7,7 +7,7 @@ import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
 import { auth } from "../lib/firebase";
 
-export default function ProfileEditScreen({ navigation, onUpdated }) {
+export default function ProfileEditScreen({ navigation, authUser, onUpdated }) {
   const { width } = useWindowDimensions();
   const contentWidth = useMemo(() => Math.min(width, 520), [width]);
   const [name, setName] = useState("");
@@ -20,14 +20,14 @@ export default function ProfileEditScreen({ navigation, onUpdated }) {
       const profileRes = await apiClient.get(API_ENDPOINTS.authMe).catch(() => null);
       const profile = profileRes?.data?.user || {};
       if (!mounted) return;
-      setName(profile.name || auth.currentUser?.displayName || "");
+      setName(profile.name || authUser?.name || auth.currentUser?.displayName || "");
     };
 
     load();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [authUser?.name]);
 
   const save = async () => {
     const nextName = name.trim();
@@ -49,8 +49,8 @@ export default function ProfileEditScreen({ navigation, onUpdated }) {
       }
 
       const response = await apiClient.patch(API_ENDPOINTS.authMe, { name: nextName });
-      const syncedName = response.data?.user?.name || nextName;
-      onUpdated?.(syncedName);
+      const syncedUser = response.data?.user || { ...(authUser || {}), name: nextName };
+      onUpdated?.(syncedUser);
       navigation.goBack();
     } catch (error) {
       Alert.alert("이름 저장 실패", "이름을 저장하지 못했습니다. 네트워크와 로그인 상태를 확인해 주세요.");

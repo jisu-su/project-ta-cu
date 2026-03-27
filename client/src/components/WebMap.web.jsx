@@ -36,6 +36,9 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
           level: 5
         });
 
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+
         mapRef.current = map;
 
         onActionsReady?.({
