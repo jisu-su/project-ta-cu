@@ -1,12 +1,12 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 export default function ScreenHeader({ title, onBack, right }) {
   return (
     <View style={styles.header}>
       <Pressable onPress={onBack} style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
-        <FontAwesome6 name="chevron-left" size={18} color="#374151" />
+        <AppIcon name="chevron-left" size={18} color="#374151" />
       </Pressable>
 
       <Text style={styles.title} numberOfLines={1}>
