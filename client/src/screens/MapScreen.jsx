@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -47,6 +48,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
   const shellWidth = useMemo(() => Math.min(width, 440), [width]);
   const [stations, setStations] = useState([]);
   const [loadingStations, setLoadingStations] = useState(true);
+  const [currentLocation, setCurrentLocation] = useState(null);
   const [riding, setRiding] = useState(false);
   const [session, setSession] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
@@ -125,6 +127,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        setCurrentLocation({ latitude: lat, longitude: lng });
         mapActions?.recenter?.([lat, lng], 5);
       },
       () => {
@@ -335,8 +338,16 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               stations={stations}
               coordinates={coordinates}
               defaultCenter={DEFAULT_REGION}
+              currentLocation={currentLocation}
               onActionsReady={setMapActions}
             />
+
+            {loadingStations && (
+              <View style={[StyleSheet.absoluteFill, styles.loadingOverlay]}>
+                <ActivityIndicator size="large" color="#066544" />
+                <Text style={styles.loadingText}>대여소 정보를 불러오는 중...</Text>
+              </View>
+            )}
 
             <View pointerEvents="none" style={styles.centerBadgeWrap}>
               <View style={styles.centerBadge}>
@@ -623,6 +634,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 68,
     paddingBottom: 16
+  },
+  loadingOverlay: {
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 20
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#066544",
+    fontWeight: "700"
   },
   centerBadgeWrap: {
     position: "absolute",

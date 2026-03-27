@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
-export default function WebMap({ stations = [], coordinates = [], defaultCenter, onActionsReady }) {
+export default function WebMap({ stations = [], coordinates = [], defaultCenter, currentLocation, onActionsReady }) {
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const currentLocationMarkerRef = useRef(null);
   const polylineRef = useRef(null);
 
   useEffect(() => {
@@ -61,7 +62,10 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
     if (Platform.OS !== "web") return;
     if (!mapRef.current || !window.kakao) return;
 
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach((item) => {
+      if (item.infowindow) item.infowindow.close();
+      if (item.marker) item.marker.setMap(null);
+    });
     markersRef.current = [];
 
     stations.forEach((station) => {
@@ -70,9 +74,38 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
         position: new window.kakao.maps.LatLng(station.lat, station.lng),
         title: station.name
       });
-      markersRef.current.push(marker);
+
+      const infowindow = new window.kakao.maps.InfoWindow({
+        content: `<div style="padding:6px;font-size:13px;color:#111;text-align:center;font-weight:600;min-width:140px;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">${station.name}</div>`
+      });
+
+      window.kakao.maps.event.addListener(marker, "click", () => {
+        infowindow.open(mapRef.current, marker);
+      });
+
+      markersRef.current.push({ marker, infowindow });
     });
   }, [stations]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (!mapRef.current || !window.kakao) return;
+
+    if (currentLocationMarkerRef.current) {
+      currentLocationMarkerRef.current.setMap(null);
+      currentLocationMarkerRef.current = null;
+    }
+
+    if (currentLocation) {
+      const content = `<div style="width: 18px; height: 18px; background-color: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.4);"></div>`;
+      
+      currentLocationMarkerRef.current = new window.kakao.maps.CustomOverlay({
+        position: new window.kakao.maps.LatLng(currentLocation.latitude, currentLocation.longitude),
+        content,
+        map: mapRef.current
+      });
+    }
+  }, [currentLocation]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
