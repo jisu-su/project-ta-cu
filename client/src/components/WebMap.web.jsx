@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 export default function WebMap({ stations = [], coordinates = [], defaultCenter, currentLocation, onActionsReady }) {
@@ -6,7 +6,6 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
   const markersRef = useRef([]);
   const currentLocationMarkerRef = useRef(null);
   const polylineRef = useRef(null);
-  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== "web") return undefined;
@@ -42,7 +41,6 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
         map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
 
         mapRef.current = map;
-        setMapReady(true);
 
         onActionsReady?.({
           recenter: ([lat, lng], level = 5) => {
@@ -62,7 +60,7 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    if (!mapRef.current || !window.kakao || !mapReady) return;
+    if (!mapRef.current || !window.kakao) return;
 
     markersRef.current.forEach((item) => {
       if (item.infowindow) item.infowindow.close();
@@ -87,11 +85,11 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
 
       markersRef.current.push({ marker, infowindow });
     });
-  }, [stations, mapReady]);
+  }, [stations]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    if (!mapRef.current || !window.kakao || !mapReady) return;
+    if (!mapRef.current || !window.kakao) return;
 
     if (currentLocationMarkerRef.current) {
       currentLocationMarkerRef.current.setMap(null);
@@ -107,11 +105,11 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
         map: mapRef.current
       });
     }
-  }, [currentLocation, mapReady]);
+  }, [currentLocation]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    if (!mapRef.current || !window.kakao || !mapReady) return;
+    if (!mapRef.current || !window.kakao) return;
 
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
@@ -132,7 +130,7 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
       strokeOpacity: 0.9,
       strokeStyle: "solid"
     });
-  }, [coordinates, mapReady]);
+  }, [coordinates]);
 
   if (Platform.OS !== "web") {
     return <View style={styles.container} />;
