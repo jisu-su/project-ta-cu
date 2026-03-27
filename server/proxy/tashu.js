@@ -150,14 +150,14 @@ async function fetchStationsFromApi() {
     stationItems.push(...page.items);
   }
 
-  const stations = stationItems
+  const validStations = stationItems
     .map(normalizeStation)
     .filter(isStationValid);
 
-  cachedStations = stations;
+  cachedStations = validStations;
   cachedAt = Date.now();
 
-  return stations;
+  return validStations;
 }
 
 async function fetchStations() {
