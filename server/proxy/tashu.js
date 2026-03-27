@@ -53,8 +53,8 @@ function buildRequestUrl(baseUrl, serviceKey, pageNo, numOfRows) {
 }
 
 function normalizeStation(item) {
-  const lat = toFiniteNumber(item?.laCrdnt ?? item?.x_pos);
-  const lng = toFiniteNumber(item?.loCrdnt ?? item?.y_pos);
+  const lat = toFiniteNumber(item?.laCrdnt ?? item?.x_pos ?? item?.lat ?? item?.latitude);
+  const lng = toFiniteNumber(item?.loCrdnt ?? item?.y_pos ?? item?.lng ?? item?.longitude);
 
   return {
     id: item?.kioskId || item?.kioskNo || item?.id || null,
@@ -115,14 +115,19 @@ async function fetchPage(baseUrl, serviceKey, pageNo, numOfRows) {
   }
 
   const resultCode = String(header.resultCode || "").trim();
-  if (resultCode && resultCode !== "C00") {
+  if (resultCode && resultCode !== "C00" && resultCode !== "00") {
     const resultMsg = String(header.resultMsg || "").trim();
     throw new Error(`Tashu API returned ${resultCode}${resultMsg ? `: ${resultMsg}` : ""}`);
   }
 
+  let rawItems = body.items;
+  if (rawItems && typeof rawItems === "object" && rawItems.item) {
+    rawItems = rawItems.item;
+  }
+
   return {
     totalCount: toFiniteNumber(body.totalCount) || 0,
-    items: toArray(body.items)
+    items: toArray(rawItems)
   };
 }
 
