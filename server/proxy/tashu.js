@@ -76,7 +76,7 @@ function buildRequestUrl(baseUrl, serviceKey, pageNo, numOfRows) {
     requestUrl = new URL(baseUrl);
   } catch (error) {
     throw new Error("TASHU_API_BASE_URL must be a valid absolute URL.");
-  }
+  }  
 
   requestUrl.searchParams.set("serviceKey", decodeServiceKey(serviceKey));
   requestUrl.searchParams.set("pageNo", String(pageNo));
