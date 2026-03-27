@@ -160,6 +160,10 @@ async function fetchStationsFromApi() {
   return stations;
 }
 
+async function fetchStations() {
+  return fetchStationsFromApi();
+}
+
 module.exports = {
   fetchStations
 };
