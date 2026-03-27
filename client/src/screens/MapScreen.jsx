@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions
 } from "react-native";
-import { FontAwesome6 } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 import { signOut } from "firebase/auth";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
@@ -326,7 +326,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               onPress={() => setShowMenu(true)}
               style={({ pressed }) => [styles.menuButton, pressed && styles.pressed]}
             >
-              <FontAwesome6 name="bars" size={18} color="#374151" />
+              <AppIcon name="bars" size={18} color="#374151" />
             </Pressable>
           </View>
 
@@ -340,7 +340,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
 
             <View pointerEvents="none" style={styles.centerBadgeWrap}>
               <View style={styles.centerBadge}>
-                <FontAwesome6 name="bicycle" size={13} color="#FFFFFF" />
+                <AppIcon name="bicycle" size={13} color="#FFFFFF" />
               </View>
             </View>
 
@@ -353,7 +353,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               accessibilityRole="button"
                 accessibilityLabel="현재 위치"
             >
-              <FontAwesome6 name="location-crosshairs" size={16} color="#066544" />
+              <AppIcon name="location-crosshairs" size={16} color="#066544" />
             </Pressable>
 
             <View style={styles.bottomOverlay}>
@@ -363,14 +363,14 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
               >
                 <View style={styles.timeCardLeft}>
                   <View style={styles.timeIcon}>
-                    <FontAwesome6 name="stopwatch" size={15} color="#066544" />
+                    <AppIcon name="stopwatch" size={15} color="#066544" />
                   </View>
                   <View>
                     <Text style={styles.timeLabel}>이용 시간</Text>
                     <Text style={styles.timeValue}>{currentTimeLabel}</Text>
                   </View>
                 </View>
-                <FontAwesome6 name="chevron-up" size={14} color="#9CA3AF" />
+                <AppIcon name="chevron-up" size={14} color="#9CA3AF" />
               </Pressable>
 
               <Pressable
@@ -419,7 +419,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                 </View>
 
                 <View style={styles.leafIcon}>
-                  <FontAwesome6 name="leaf" size={24} color="#FFFFFF" />
+                  <AppIcon name="leaf" size={24} color="#FFFFFF" />
                 </View>
               </View>
 
@@ -447,7 +447,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                 <View>
                   <View style={styles.drawerProfileRow}>
                     <View style={styles.drawerAvatar}>
-                      <FontAwesome6 name="user" size={32} color="#FFFFFF" />
+                      <AppIcon name="user" size={32} color="#FFFFFF" />
                     </View>
                     <View style={styles.drawerProfileTextWrap}>
                       <Text style={styles.drawerWelcome}>다시 만나서 반갑습니다.</Text>
@@ -459,14 +459,14 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                 </View>
 
                 <Pressable onPress={() => setShowMenu(false)} style={({ pressed }) => [styles.drawerCloseButton, pressed && styles.pressed]}>
-                  <FontAwesome6 name="xmark" size={20} color="#FFFFFF" />
+                  <AppIcon name="xmark" size={20} color="#FFFFFF" />
                 </Pressable>
               </View>
 
               <View style={styles.drawerLogoutRow}>
                 <Pressable onPress={logout} style={({ pressed }) => [styles.drawerLogoutButton, pressed && styles.pressed]}>
                    <Text style={styles.drawerLogoutText}>로그아웃</Text>
-                  <FontAwesome6 name="arrow-right" size={12} color="#FFFFFF" />
+                  <AppIcon name="arrow-right" size={12} color="#FFFFFF" />
                 </Pressable>
               </View>
 
@@ -479,7 +479,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   }}
                 >
                   <View style={styles.drawerItemIconWrap}>
-                    <FontAwesome6 name="file-lines" size={18} color="#066544" />
+                    <AppIcon name="file-lines" size={18} color="#066544" />
                   </View>
                    <Text style={styles.drawerItemText}>이용 리포트 목록</Text>
                 </Pressable>
@@ -492,7 +492,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   }}
                 >
                   <View style={styles.drawerItemIconWrap}>
-                    <FontAwesome6 name="user" size={18} color="#066544" />
+                    <AppIcon name="user" size={18} color="#066544" />
                   </View>
                    <Text style={styles.drawerItemText}>마이페이지</Text>
                 </Pressable>
@@ -505,7 +505,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   }}
                 >
                   <View style={styles.drawerItemIconWrap}>
-                    <FontAwesome6 name="circle-info" size={18} color="#066544" />
+                    <AppIcon name="circle-info" size={18} color="#066544" />
                   </View>
                    <Text style={styles.drawerItemText}>이용 안내</Text>
                 </Pressable>
@@ -518,7 +518,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
                   }}
                 >
                   <View style={styles.drawerItemIconWrap}>
-                    <FontAwesome6 name="lightbulb" size={18} color="#066544" />
+                    <AppIcon name="lightbulb" size={18} color="#066544" />
                   </View>
                   <View style={styles.drawerItemColumn}>
                      <Text style={styles.drawerItemText}>탄소 중립 퀴즈</Text>

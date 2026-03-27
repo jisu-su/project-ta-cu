@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "타슈 탄소중립",
+    "name": "\uD0C0\uC288 \uC790\uC804\uAC70",
     "slug": "ta-cu",
     "version": "0.0.1",
     "orientation": "portrait",
     "platforms": ["ios", "android", "web"],
     "web": {
-      "output": "single"
+      "output": "single",
+      "lang": "ko"
     },
     "sdkVersion": "54.0.0",
     "updates": { "fallbackToCacheTimeout": 0 },
