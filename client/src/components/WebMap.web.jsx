@@ -6,6 +6,13 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
   const markersRef = useRef([]);
   const currentLocationMarkerRef = useRef(null);
   const polylineRef = useRef(null);
+  const mapListenersRef = useRef([]);
+
+  const closeAllInfoWindows = () => {
+    markersRef.current.forEach((item) => {
+      if (item.infowindow) item.infowindow.close();
+    });
+  };
 
   useEffect(() => {
     if (Platform.OS !== "web") return undefined;
@@ -42,8 +49,21 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
 
         mapRef.current = map;
 
+        const closeOnMapInteraction = () => {
+          closeAllInfoWindows();
+        };
+
+        window.kakao.maps.event.addListener(map, "click", closeOnMapInteraction);
+        window.kakao.maps.event.addListener(map, "dragstart", closeOnMapInteraction);
+        window.kakao.maps.event.addListener(map, "zoom_start", closeOnMapInteraction);
+        mapListenersRef.current = [
+          { target: map, event: "click", handler: closeOnMapInteraction },
+          { target: map, event: "dragstart", handler: closeOnMapInteraction },
+          { target: map, event: "zoom_start", handler: closeOnMapInteraction }
+        ];
+
         onActionsReady?.({
-          recenter: ([lat, lng], level = 5) => {
+          recenter: ([lat, lng], level = 3) => {
             map.setCenter(new window.kakao.maps.LatLng(lat, lng));
             map.setLevel(level);
           }
@@ -55,6 +75,12 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
 
     return () => {
       cancelled = true;
+      if (window.kakao?.maps?.event) {
+        mapListenersRef.current.forEach(({ target, event, handler }) => {
+          window.kakao.maps.event.removeListener(target, event, handler);
+        });
+      }
+      mapListenersRef.current = [];
     };
   }, []);
 
@@ -75,11 +101,22 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
         title: station.name
       });
 
-      const infowindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:6px;font-size:13px;color:#111;text-align:center;font-weight:600;min-width:140px;border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,0.1);">${station.name}</div>`
-      });
+      const availableBikes =
+        station.parkingCount === null || station.parkingCount === undefined
+          ? "정보없음"
+          : `${station.parkingCount}대`;
+
+      const infoContent = `
+        <div style="padding:8px 10px;font-size:13px;color:#111;text-align:left;font-weight:600;min-width:160px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.12);line-height:1.35;">
+          <div style="margin-bottom:4px;">${station.name}</div>
+          <div style="font-size:12px;font-weight:500;color:#2f2f2f;">대여 가능: ${availableBikes}</div>
+        </div>
+      `;
+
+      const infowindow = new window.kakao.maps.InfoWindow({ content: infoContent });
 
       window.kakao.maps.event.addListener(marker, "click", () => {
+        closeAllInfoWindows();
         infowindow.open(mapRef.current, marker);
       });
 
