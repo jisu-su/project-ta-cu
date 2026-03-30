@@ -38,10 +38,10 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter,
 
         const map = new window.kakao.maps.Map(container, {
           center: new window.kakao.maps.LatLng(
-            defaultCenter?.latitude ?? 36.3504,
-            defaultCenter?.longitude ?? 127.3845
+            defaultCenter?.latitude ?? 36.340242,
+            defaultCenter?.longitude ?? 127.377457
           ),
-          level: 5
+          level: 3
         });
 
         const zoomControl = new window.kakao.maps.ZoomControl();
