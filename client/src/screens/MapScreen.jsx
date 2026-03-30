@@ -23,8 +23,8 @@ import { logUsage } from "../modules/usageModule";
 import { auth } from "../lib/firebase";
 
 const DEFAULT_REGION = {
-  latitude: 36.3504,
-  longitude: 127.3845,
+  latitude: 36.349231,
+  longitude: 127.377484,
   latitudeDelta: 0.05,
   longitudeDelta: 0.05
 };
@@ -128,7 +128,7 @@ export default function MapScreen({ navigation, route, authUser, refreshAuthStat
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         setCurrentLocation({ latitude: lat, longitude: lng });
-        mapActions?.recenter?.([lat, lng], 5);
+        mapActions?.recenter?.([lat, lng], 3);
       },
       () => {
         showGpsToast("현재 위치를 가져올 수 없습니다.");
