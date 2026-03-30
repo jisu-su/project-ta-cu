@@ -6,6 +6,7 @@ const stations = [
 ];
 
 const DEFAULT_PAGE_SIZE = Math.max(1, Number(process.env.TASHU_API_NUM_OF_ROWS || 20));
+const MAX_PAGES = Math.max(1, Number(process.env.TASHU_API_MAX_PAGES || 100));
 const DEFAULT_TIMEOUT_MS = Math.max(1000, Number(process.env.TASHU_API_TIMEOUT_MS || 10000));
 const CACHE_TTL_MS = Math.max(0, Number(process.env.TASHU_API_CACHE_TTL_MS || 5 * 60 * 1000));
 
@@ -37,19 +38,12 @@ function toArray(value) {
   return Array.isArray(value) ? value : [value];
 }
 
-function buildRequestUrl(baseUrl, serviceKey, pageNo, numOfRows) {
-  let requestUrl;
-
+function buildRequestUrl(baseUrl) {
   try {
-    requestUrl = new URL(baseUrl);
+    return new URL(baseUrl).toString();
   } catch (error) {
     throw new Error("TASHU_API_BASE_URL must be a valid absolute URL.");
-  }  
-
-  requestUrl.searchParams.set("serviceKey", decodeServiceKey(serviceKey));
-  requestUrl.searchParams.set("pageNo", String(pageNo));
-  requestUrl.searchParams.set("numOfRows", String(numOfRows));
-  return requestUrl.toString();
+  }
 }
 
 function normalizeStation(item) {
@@ -72,41 +66,24 @@ function isStationValid(station) {
 }
 
 function getApiConfig() {
+  const explicitToken = getEnvValue("TASHU_API_TOKEN");
+  const legacyToken = getEnvValue("TASHU_API_SERVICE_KEY");
+
   return {
     baseUrl: getEnvValue("TASHU_API_BASE_URL"),
-    serviceKey: getEnvValue("TASHU_API_SERVICE_KEY")
+    apiToken: explicitToken || legacyToken
   };
 }
 
-async function fetchPage(baseUrl, serviceKey, pageNo, numOfRows) {
-  const requestUrl = buildRequestUrl(baseUrl, serviceKey, pageNo, numOfRows);
-  if (typeof fetch !== "function") {
-    throw new Error("Global fetch is not available in this runtime.");
+function parseApiPayload(payload) {
+  if (payload && Array.isArray(payload.results)) {
+    return {
+      totalCount: toFiniteNumber(payload.count) || payload.results.length,
+      items: payload.results,
+      next: payload.next || null
+    };
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  let response;
-  try {
-    response = await fetch(requestUrl, {
-      signal: controller.signal
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!response.ok) {
-    throw new Error(`Tashu API request failed with status ${response.status}.`);
-  }
-
-  let payload;
-
-  try {
-    payload = await response.json();
-  } catch (error) {
-    throw new Error("Failed to parse JSON from Tashu API response.");
-  }
   const body = payload?.response?.body;
   const header = payload?.response?.header;
 
@@ -127,14 +104,48 @@ async function fetchPage(baseUrl, serviceKey, pageNo, numOfRows) {
 
   return {
     totalCount: toFiniteNumber(body.totalCount) || 0,
-    items: toArray(rawItems)
+    items: toArray(rawItems),
+    next: null
   };
 }
 
-async function fetchStationsFromApi() {
-  const { baseUrl, serviceKey } = getApiConfig();
+async function fetchPage(requestUrl, apiToken) {
+  const finalUrl = buildRequestUrl(requestUrl);
+  if (typeof fetch !== "function") {
+    throw new Error("Global fetch is not available in this runtime.");
+  }
 
-  if (!baseUrl || !serviceKey) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(finalUrl, {
+      signal: controller.signal,
+      headers: apiToken ? { "api-token": decodeServiceKey(apiToken) } : undefined
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Tashu API request failed with status ${response.status}.`);
+  }
+
+  let payload;
+
+  try {
+    payload = await response.json();
+  } catch (error) {
+    throw new Error("Failed to parse JSON from Tashu API response.");
+  }
+  return parseApiPayload(payload);
+}
+
+async function fetchStationsFromApi() {
+  const { baseUrl, apiToken } = getApiConfig();
+
+  if (!baseUrl || !apiToken) {
     if (!warnedAboutFallback) {
       console.warn("Tashu API is not configured. Falling back to local sample stations.");
       warnedAboutFallback = true;
@@ -146,13 +157,19 @@ async function fetchStationsFromApi() {
     return cachedStations;
   }
 
-  const firstPage = await fetchPage(baseUrl, serviceKey, 1, DEFAULT_PAGE_SIZE);
-  const totalPages = Math.max(1, Math.ceil(firstPage.totalCount / DEFAULT_PAGE_SIZE));
-  const stationItems = [...firstPage.items];
+  let nextUrl = baseUrl;
+  const stationItems = [];
+  let safetyCounter = 0;
 
-  for (let pageNo = 2; pageNo <= totalPages; pageNo += 1) {
-    const page = await fetchPage(baseUrl, serviceKey, pageNo, DEFAULT_PAGE_SIZE);
+  while (nextUrl) {
+    const page = await fetchPage(nextUrl, apiToken);
     stationItems.push(...page.items);
+    nextUrl = page.next;
+    safetyCounter += 1;
+    if (safetyCounter > MAX_PAGES) {
+      console.warn("Tashu API pagination exceeded safety limit. Returning partial results.");
+      break;
+    }
   }
 
   const validStations = stationItems
