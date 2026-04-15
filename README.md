@@ -1,80 +1,40 @@
-# Ta-Cu
+# 🚀 탄소중립 트래킹 앱 (탔시유?)
 
-Ta-Cu is a bike-sharing style app with Firebase Auth, an Express API, and a web client that can be deployed to Cloudflare Pages.
+## 📌 프로젝트 소개
+GPS 기반 이동 데이터를 분석하여
+탄소 절감량을 계산하는 모바일 애플리케이션입니다.
 
-## Security Rules
+---
 
-- Authentication is based on Firebase Auth only.
-- The server trusts `req.user.uid` from the verified Firebase ID token.
-- Client-supplied `userId` values are not used for authorization.
-- Resource access is checked on the server by comparing ownership against `req.user.uid`.
-- Protected routes require `Authorization: Bearer <firebase-id-token>`.
+## ⚠️ 현재 상태
+본 프로젝트는 클라이언트는 배포되었으나,
+서버 및 Firebase 인증 연결이 제한되어
+실제 서비스 접속은 불가능한 상태입니다.
 
-## Error Response Rules
+*발표 프레젠테이션 링크: https://navyartist.github.io/ta-cu-presentation/
 
-All API errors use the same JSON envelope:
+---
 
-```json
-{
-  "error": {
-    "code": "BAD_REQUEST",
-    "message": "The request is invalid."
-  }
-}
-```
+## 🎯 주요 기능
+- GPS 기반 이동 거리 측정
+- 탄소 절감량 계산
+- 실시간 위치 추적
+- 사용자 데이터 저장
 
-### Status Code Rules
+---
 
-- `401` means authentication is missing or invalid.
-- `403` means the authenticated user does not own the resource.
-- `404` means the resource does not exist.
-- `400` means the request is missing required input or is otherwise invalid.
-- `410` means an old endpoint is no longer used.
-- `500` means the server hit an unexpected failure.
+## 🧠 핵심 구현
+- GPS 좌표 필터링 로직으로 오차 개선 (70m → 35m)
+- Firebase 기반 데이터 구조 설계
+- 실시간 지도 렌더링 구현
 
-### Common Codes
+---
 
-- `UNAUTHORIZED`
-- `FORBIDDEN`
-- `NOT_FOUND`
-- `BAD_REQUEST`
-- `GONE`
-- `INTERNAL_ERROR`
+## 💡 기술적 포인트
+이 프로젝트에서 단순 기능 구현을 넘어서,
+데이터 정확도 개선과 실시간 처리 문제를 해결하는 데 집중했습니다.
 
-## Development
+---
 
-- Server: `server/`
-- Client: `client/`
-
-Typical local commands:
-
-```bash
-cd server
-npm run dev
-
-cd client
-npm run web
-```
-
-## Environment Variables
-
-Client-side runtime values should live in `client/.env` and use the `EXPO_PUBLIC_*` prefix.
-
-Example:
-
-```env
-EXPO_PUBLIC_API_BASE_URL=https://your-api-host.example.com
-EXPO_PUBLIC_FIREBASE_API_KEY=...
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=...
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=...
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-EXPO_PUBLIC_FIREBASE_APP_ID=...
-EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=...
-```
-
-## Notes
-
-- Firebase Auth persistence is configured in code, not in the Firebase Console.
-- Cloudflare Pages is used for the client build output.
-- The API server still requires a publicly reachable URL, such as a tunnel or hosted backend.
+## 🖥 실행 방법 (개발자용)
+(기존 README 링크 연결)
